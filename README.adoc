@@ -1,0 +1,41 @@
+# SocketCAN: simple test
+
+## Context
+
+1. https://en.wikipedia.org/wiki/SocketCAN
+2. https://www.kernel.org/doc/Documentation/networking/can.txt
+
+## Prerequisite
+
+1. Linux kernel > 2.6.25
+
+
+   ls -l /lib/modules/$(uname -r)/kernel/net/can
+   -rw-r--r-- 1 root root 29673 Sep  4 23:11 can-bcm.ko
+   -rw-r--r-- 1 root root 21321 Sep  4 23:11 can-gw.ko
+   -rw-r--r-- 1 root root 36417 Sep  4 23:11 can.ko
+   -rw-r--r-- 1 root root 18297 Sep  4 23:11 can-raw.ko
+
+
+2. Load the CAN modules
+
+   modprobe can
+   modprobe can-dev
+   modprobe can-raw
+   modprobe vcan
+
+
+3. Configure a virtual CAN interface
+
+  ip link add dev vcan0 type vcan
+  ip link set up vcan0
+  ip link show vcan0
+
+
+## Build
+```
+mkdir build && cd build
+cmake ..
+make
+./socketcan-test
+```
