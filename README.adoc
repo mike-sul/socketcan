@@ -39,3 +39,66 @@ cmake ..
 make
 ./socketcan-test
 ```
+
+## SocketCAN usage and testing on QEMU VMs baked by Yocto
+
+### Kernel config
+
+1. bitbake -c menuconfig virtual/kernel
+2. turn on CAN related features, see here http://www.armadeus.org/wiki/index.php?title=CAN_bus_Linux_driver and here https://lists.yoctoproject.org/pipermail/yocto/2017-September/038159.html
+
+*TODO: Set the required kernel configuration options from the meta-updater recipe*
+
+### QEMU
+
+The QEMU version that is installed on Ubuntu by default does not support CAN related functionality.
+```
+msul@bagger:~$ qemu-system-x86_64 --version
+QEMU emulator version 2.11.1(Debian 1:2.11+dfsg-1ubuntu7.18)
+Copyright (c) 2003-2017 Fabrice Bellard and the QEMU Project developers
+```
+
+The QEMU version that includes this commit https://github.com/qemu/qemu/commit/321af2f5b8285d547468c505fc8ed66b9c1b1907 is required.
+It means any version >= *v2.12.0-rc0* should do the trick
+
+*TODO: update QEMU on CI machines as well as each developer should update it too*
+
+### Run VM in QEMU
+
+Run QEMU VM with following additional options that turns 'CAN' stuff
+```
+-object can-bus,id=canbus0 -object can-host-socketcan,id=canhost0,if=vcan0,canbus=canbus0  -device kvaser_pci,canbus=canbus0
+```
+
+Or in case of meta-updater add the following into `scripts/qemucommand.py::command_line()`
+```
+cmdline += ["-object", "can-bus,id=canbus0", "-object", "can-host-socketcan,id=canhost0,if=vcan0,canbus=canbus0", "-device", "kvaser_pci,canbus=canbus0"]
+```
+*TODO: update scripts/qemucommand.py to support the CAN stuff*
+
+### Configure SocketCAN interface on VM
+
+```
+ip link set can0 type can bitrate 1000000
+ip link set can0 up
+```
+*TODO: Update meta-updater recipe to automate the socketcan interface configuration*
+
+### Nice to have
+In order to debug & troubleshoot applications that communicates via CAN/SocketCAN as well as CAN interface itself
+it's highly recommended to install *can-utils* and *kernel-modules*
+```
+IMAGE_INSTALL_append += " can-utils kernel-modules "
+```
+*TODO: update meta-updater recipe to include these tools*
+
+### Reference info
+1. https://www.kernel.org/doc/html/latest/networking/can.html
+2. https://github.com/qemu/qemu/blob/master/docs/can.tx
+3. http://cmp.felk.cvut.cz/~pisa/can/doc/rtlws-17-pisa-qemu-can.pdf
+4. http://patchwork.ozlabs.org/cover/860513/
+5. https://tinylab.gitbooks.io/elinux/en/dev_portals/Hardware_Hacking/CAN_Bus/CAN_Bus.html
+6. https://lists.nongnu.org/archive/html/qemu-devel/2018-01/msg07114.html
+7. https://python-can.readthedocs.io/en/master/
+8. https://github.com/pylessard/python-can-isotp
+9. https://udsoncan.readthedocs.io/en/latest/index.html
